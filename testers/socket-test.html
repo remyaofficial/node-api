@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Sockets test</title>
+</head>
+
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.dev.js"></script>
+  <script>
+    var socket;
+
+    $.post('http://localhost:3000/auth/local', {
+      username: 'admin@admin.com',
+      password: '123456'
+    }, function (response) {
+      socket = io('http://localhost:3000', {
+        transports: ['websocket'],
+        query: {
+          token: response.data.token
+        },
+      });
+
+      socket.emit('events', {
+        event: 'events',
+        data: {
+          test: true
+        }
+      });
+
+      socket.on('events', (response) => {
+        console.log(response);
+      });
+    });
+  </script>
+</body>
+
+</html>

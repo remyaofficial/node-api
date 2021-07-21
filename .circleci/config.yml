@@ -1,0 +1,44 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: circleci/node:14
+      - image: circleci/redis:6.2
+      - image: circleci/mongo:latest
+      - image: circleci/mysql:latest
+        command: [--default-authentication-plugin=mysql_native_password]
+        environment:
+          MYSQL_DATABASE: nest
+    steps:
+      - checkout
+      - run:
+          name: Wait for Redis
+          command: dockerize -wait tcp://localhost:6379 -timeout 1m
+      - run:
+          name: Wait for Mongo to start
+          command: dockerize -wait tcp://127.0.0.1:27017 -timeout 120s
+      - run:
+          # Our primary container isn't MYSQL so run a sleep command until it's ready.
+          name: Waiting for MySQL to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z 127.0.0.1 3306 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for MySQL && exit 1
+      - run:
+          name: Install MySQL CLI; run an example query
+          command: |
+            sudo apt-get install default-mysql-client
+            mysql -h 127.0.0.1 -u root --execute="SELECT 1 as test"
+      - run:
+          name: Install
+          command: npm install
+      - run:
+          name: Seed
+          command: npm run seed
+      - run:
+          name: Test
+          command: npm run test:e2e
